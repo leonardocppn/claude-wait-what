@@ -4,7 +4,7 @@ Select a passage in a Claude Code session, press a key, and a second Claude
 opens beside it to discuss that passage, without interrupting the first one's
 work.
 
-<!-- DEMO: GIF or screenshot goes here -->
+![Demo: in the main session Claude lists what is missing to launch a weather balloon; the user selects "Kessler KV-20 valve" and presses Ctrl+A; a side window opens and explains it, while the main session goes on writing an email.](assets/cww-demo.gif)
 
 ## How it works
 
