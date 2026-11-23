@@ -7,6 +7,7 @@
     wait-what anywhere             universal adapter: read the primary selection
                                    and open the instance in a terminal window
     wait-what install-konsole      create the Konsole profile used for tabs
+    wait-what install-tmux         write a ready tmux config to source
     wait-what tmux --socket S --server-pid P --pane %N [--buffer]
                                    tmux adapter: selection from stdin (copy-pipe)
                                    or from the last tmux buffer, new tmux window
@@ -145,6 +146,21 @@ def cmd_tmux(args) -> int:
     return 0
 
 
+def cmd_install_tmux(_args) -> int:
+    """Write a ready tmux config (the template with this checkout's path)."""
+    root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+    with open(os.path.join(root, 'adapters', 'tmux', 'wait-what.tmux.conf'), encoding='utf-8') as f:
+        conf = f.read().replace('WAIT_WHAT', shlex.join(_cli()))
+    base = os.environ.get('XDG_CONFIG_HOME') or os.path.expanduser('~/.config')
+    path = os.path.join(base, 'claude-wait-what', 'wait-what.tmux.conf')
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, 'w', encoding='utf-8') as f:
+        f.write(conf)
+    print(f'tmux config written to {path}. Add this line to ~/.tmux.conf:\n'
+          f'    source-file {path}')
+    return 0
+
+
 def cmd_install_konsole(_args) -> int:
     path = opener.install_konsole_profile(_cli() + ['run', '--pending'])
     print(f'Konsole profile written to {path}. Restart Konsole once to load it.')
@@ -166,11 +182,16 @@ def main(argv: list[str] | None = None) -> int:
                    ).set_defaults(fn=cmd_anywhere)
     sub.add_parser('install-konsole', help='create the Konsole profile (restart Konsole after)'
                    ).set_defaults(fn=cmd_install_konsole)
+    sub.add_parser('install-tmux', help='write a ready tmux config to source'
+                   ).set_defaults(fn=cmd_install_tmux)
     pt = sub.add_parser('tmux', help='tmux adapter')
     pt.add_argument('--socket', required=True, help='#{socket_path}')
     pt.add_argument('--server-pid', required=True, help='#{pid}')
     pt.add_argument('--pane', required=True, help='#{pane_id}')
     pt.add_argument('--buffer', action='store_true', help='use the last tmux buffer, not stdin')
     pt.set_defaults(fn=cmd_tmux)
+    # Commands pasted into a desktop shortcut dialog often carry a trailing
+    # newline ("anywhere\n"): stray whitespace around arguments is dropped.
+    argv = [a.strip() for a in (sys.argv[1:] if argv is None else argv)]
     args = p.parse_args(argv)
     return args.fn(args)
